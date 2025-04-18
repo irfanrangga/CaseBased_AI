@@ -14,9 +14,10 @@ def inisialisasi_populasi():
              for _ in range(population_size)]
 
 
-def decode(krom):
-    biner_x1 = krom[bitx]
-    biner_x2 = krom[bitx]
+def decode(kromosom):
+    krom = ''.join(str(bit) for bit in krom)
+    biner_x1 = kromosom[bitx]
+    biner_x2 = kromosom[bitx]
 
     desimal_x1 = int(biner_x1, 2)
     desimal_x2 = int(biner_x2, 2)
@@ -24,4 +25,13 @@ def decode(krom):
     x1 = X1_MIN + (X1_MAX - X1_MIN) * desimal_x1 / (2**bitx - 1)
     x2 = X2_MIN + (X2_MAX - X2_MIN) * desimal_x2 / (2**bitx - 1)
     return x1, x2
+
+def fitness():
+    x1, x2 = decode(kromosom)
+    try: 
+        hasil = math.sin(x1) * math.cos(x2) * math.tan(x1 + x2)
+        hasil += (3/4) * math.exp(1 - math.sqrt(x1**2))
+        return hasil
+    except:
+        return float(' ')
 
