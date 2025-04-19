@@ -26,12 +26,17 @@ def decode(kromosom):
     x2 = X2_MIN + (X2_MAX - X2_MIN) * desimal_x2 / (2**bitx - 1)
     return x1, x2
 
-def fitness():
-    x1, x2 = decode(kromosom)
-    try: 
-        hasil = math.sin(x1) * math.cos(x2) * math.tan(x1 + x2)
-        hasil += (3/4) * math.exp(1 - math.sqrt(x1**2))
-        return hasil
-    except:
-        return float(' ')
+def hitung_fitness(x1, x2):
+        eqt = math.sin(x1) * math.cos(x2) * math.tan(x1+x2) + (3/4) * math.exp(1-(math.sqrt(math.pow(x1, 2))))
+        return -1 * eqt
+
+def fitness(krom):
+    x1, x2 = decode(krom)
+    return hiitung_fitness(x1, x2)
+
+def pemilihan_ortu(pop):
+    ortu_1 = random.choice(pop)
+    ortu_2 = random.choice(pop)
+    return a if fitness(a) < fitness(b) else b
+
 
