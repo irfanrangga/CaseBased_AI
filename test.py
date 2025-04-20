@@ -1,67 +1,95 @@
 import random
 import math
 
-# Fungsi objektif
-def fitness(individu):
-    x1, x2 = individu
+POP_SIZE = 6
+GEN_LENGTH = 4
+TOTAL_GEN = GEN_LENGTH * 2
+X_MIN = -10
+X_MAX = 10
+MAX_GEN = 3
+PC = 0.8 
+PM = 0.01  
+TOURNAMENT_SIZE = 2 
+
+def binary_to_real(binary_str, min_val, max_val):
+    decimal = int(binary_str, 2)
+    max_dec = 2**GEN_LENGTH - 1
+    return min_val + (decimal / max_dec) * (max_val - min_val)
+
+def fitness_function(x1, x2):
     try:
-        val = math.sin(x1) * math.cos(x2) * math.tan(x1 + x2)
-        val += (3/4) * math.exp(1 - abs(x1))
-        return -val  # karena kita ingin minimisasi
+        result = - (math.sin(x1) * math.cos(x2) * math.tan(x1 + x2) + 0.75 * math.exp(1 - math.sqrt(x1 ** 2)))
     except:
-        return float('inf')  # jika tan menghasilkan nilai tak hingga
+        result = float('inf')
+    return result
 
-# Inisialisasi populasi
-def init_population(size, bounds):
-    return [(
-        random.uniform(bounds[0], bounds[1]),
-        random.uniform(bounds[0], bounds[1])
-    ) for _ in range(size)]
+def init_population():
+    return [''.join(random.choice('01') for _ in range(TOTAL_GEN)) for _ in range(POP_SIZE)]
 
-# Seleksi (turnamen)
-def selection(populasi):
-    return min(random.sample(populasi, 3), key=fitness)
+def decode_chromosome(chromosome):
+    x1_bin = chromosome[:GEN_LENGTH]
+    x2_bin = chromosome[GEN_LENGTH:]
+    x1 = binary_to_real(x1_bin, X_MIN, X_MAX)
+    x2 = binary_to_real(x2_bin, X_MIN, X_MAX)
+    return x1, x2
 
-# Crossover (satu titik)
+def evaluate_population(population):
+    return [fitness_function(*decode_chromosome(chrom)) for chrom in population]
+
+def tournament_selection(population, fitnesses):
+    best = None
+    for _ in range(TOURNAMENT_SIZE):
+        idx = random.randint(0, POP_SIZE - 1)
+        if best is None or fitnesses[idx] < fitnesses[best]:
+            best = idx
+    return population[best]
+
 def crossover(parent1, parent2):
-    if random.random() < 0.7:
-        return (parent1[0], parent2[1]), (parent2[0], parent1[1])
-    else:
-        return parent1, parent2
+    if random.random() < PC:
+        point = random.randint(1, TOTAL_GEN - 1)
+        child1 = parent1[:point] + parent2[point:]
+        child2 = parent2[:point] + parent1[point:]
+        return child1, child2
+    return parent1, parent2
 
-# Mutasi (small gaussian perturbation)
-def mutate(individu, bounds):
-    x1, x2 = individu
-    if random.random() < 0.2:
-        x1 += random.gauss(0, 0.5)
-    if random.random() < 0.2:
-        x2 += random.gauss(0, 0.5)
-    # clamp to bounds
-    x1 = max(min(x1, bounds[1]), bounds[0])
-    x2 = max(min(x2, bounds[1]), bounds[0])
-    return (x1, x2)
+def mutate(chromosome):
+    mutated = ''
+    for bit in chromosome:
+        if random.random() < PM:
+            mutated += '0' if bit == '1' else '1'
+        else:
+            mutated += bit
+    return mutated
 
-# Genetic Algorithm
-def genetic_algorithm(generasi=10, pop_size=30, bounds=(-10, 10)):
-    populasi = init_population(pop_size, bounds)
+def genetic_algorithm():
+    population = init_population()
+    best_chrom = None
+    best_fit = float('inf')
 
-    for gen in range(generasi):
-        populasi = sorted(populasi, key=fitness)
-        next_gen = populasi[:2]  # elitisme
+    for generation in range(MAX_GEN):
+        fitnesses = evaluate_population(population)
+        
+        min_fit_idx = fitnesses.index(min(fitnesses))
+        if fitnesses[min_fit_idx] < best_fit:
+            best_fit = fitnesses[min_fit_idx]
+            best_chrom = population[min_fit_idx]
 
-        while len(next_gen) < pop_size:
-            parent1 = selection(populasi)
-            parent2 = selection(populasi)
+        new_population = [best_chrom]  
+
+        while len(new_population) < POP_SIZE:
+            parent1 = tournament_selection(population, fitnesses)
+            parent2 = tournament_selection(population, fitnesses)
             child1, child2 = crossover(parent1, parent2)
-            next_gen.extend([mutate(child1, bounds), mutate(child2, bounds)])
+            new_population.extend([mutate(child1), mutate(child2)])
 
-        populasi = next_gen
+        population = new_population[:POP_SIZE] 
 
-        best = min(populasi, key=fitness)
-        print(f"Generasi {gen+1} - Terbaik: {best} => Fitness: {fitness(best)}")
+    x1, x2 = decode_chromosome(best_chrom)
+    return best_chrom, x1, x2, best_fit
 
-    return min(populasi, key=fitness)
+best_chromosome, x1, x2, f_val = genetic_algorithm()
 
-# Jalankan
-hasil_akhir = genetic_algorithm()
-print(f"\nHasil akhir terbaik: {hasil_akhir} => Nilai minimum: {fitness(hasil_akhir)}")
+print("Kromosom Terbaik:", best_chromosome)
+print("x1 =", x1)
+print("x2 =", x2)
+print("Nilai Fungsi Minimum =", f_val)

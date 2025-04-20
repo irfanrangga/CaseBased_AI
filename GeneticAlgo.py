@@ -2,8 +2,8 @@ import math
 import random
 
 # Konstanta
-population_size = 50
-panjang_kromosom = 10
+population_size = 10
+panjang_kromosom = 8
 batasan_x1 = (-10, 10)
 batasan_x2 = (-10, 10)
 bitx = panjang_kromosom // 2
@@ -40,15 +40,15 @@ def fitness(kromosom):
         eqt = math.sin(x1) * math.cos(x2) * math.tan(x1+x2) + (3/4) * math.exp(1-(math.sqrt(x1**2)))
     return -eqt
 
-def crossover(kromosom1, kromosom2):
-    # Melakukan crossover satu titik
-    if random.random() > pc:
-        return kromosom1, kromosom2  # Tidak melakukan crossover
+def crossover(ortu1, ortu2):
+    # Melakukan crossover satu titik pada kromosom
+    if random.random() < pc:
+        point = random.randint(1, panjang_kromosom - 1)
+        print(f"  > Crossover pada titik ke-{point}")
+        anak1 = ortu1[:point] + ortu2[point:]
+        anak2 = ortu2[:point] + ortu1[point:]
     else:
-        # Memilih titik crossover secara acak
-        titik_crossover = random.randint(1, panjang_kromosom - 1)
-        anak1 = kromosom1[:titik_crossover] + kromosom2[titik_crossover:]
-        anak2 = kromosom2[:titik_crossover] + kromosom1[titik_crossover:]
+        anak1, anak2 = ortu1, ortu2  # Tidak ada crossover, anak sama dengan ortu
     return anak1, anak2
 
 def mutasi(kromosom, probabilitas_mutasi=pm):
@@ -58,75 +58,62 @@ def mutasi(kromosom, probabilitas_mutasi=pm):
             kromosom[i] = 1 - kromosom[i]  # Mengubah 0 menjadi 1 dan sebaliknya
     return kromosom
 
-# def seleksi(populasi):
-#     # Menggunakan metode turnamen untuk seleksi
-#     turnamen_size = 2
-#     turnamen = random.sample(populasi, turnamen_size)
-#     pemenang = min(turnamen, key=fitness)  # Memilih kromosom dengan fitness terbaik
-#     return pemenang
+def seleksi(populasi):
+    # Menggunakan metode turnamen untuk seleksi
+    turnamen_size = 2
+    turnamen = random.sample(populasi, turnamen_size)
+    pemenang = min(turnamen, key=fitness)  # Memilih kromosom dengan fitness terbaik
+    return pemenang
 
-# Fungsi untuk memilih orang tua (ortu) untuk crossover dengan roulette wheel selection
-def pemilihan_ortu(populasi):
-    ortu_1 = random.choice(populasi)
-    ortu_2 = random.choice(populasi)
-    if fitness(ortu_1) < fitness(ortu_2):
-        return ortu_1
-    else:
-        return ortu_2
-    
-def evolusi(generasi=100):
+def evolusi(generasi):
     pop = inisialisasi_populasi()
+    
+    print("\n=== Populasi Awal ===")
+    for i, krom in enumerate(pop):
+        x1, x2 = decode(krom)
+        fit = fitness(krom)
+        print(f"Individu-{i+1}: {''.join(map(str,krom))} -> x1 = {x1:.4f}, x2 = {x2:.4f}, fitness = {fit:.6f}")
+    
+    print("\n=== Proses Evolusi ===")
+    
     for g in range(generasi):
+        i = 1
         pop_baru = []
+        
+        print(f"\n-- Generasi {g+1} --")
+        
         while len(pop_baru) < population_size:
-            ortu1 = pemilihan_ortu(pop)
-            ortu2 = pemilihan_ortu(pop)
+            ortu1 = seleksi(pop)
+            ortu2 = seleksi(pop)
+            print(f"Seleksi ke-{i}")
+            print(f"Ortu 1: {''.join(map(str,ortu1))}, Ortu 2: {''.join(map(str,ortu2))}")
+
             anak1, anak2 = crossover(ortu1, ortu2)
+            print(f"  > Crossover hasil: ")
+            print(f"    Anak1: {''.join(map(str, anak1))}, Anak2: {''.join(map(str, anak2))}")
+
             anak1 = mutasi(anak1)
             anak2 = mutasi(anak2)
+            print(f"  > Setelah mutasi: ")
+            print(f"    Anak1: {''.join(map(str, anak1))}, Anak2: {''.join(map(str, anak2))}")
+            print()
+
             pop_baru.extend([anak1, anak2])
+            i += 1
+
+        elit = min(pop, key=fitness)
+        pop_baru.append(elit)
+        print(f"  > Kromosom terbaik saat ini: {''.join(map(str, elit))}")
+        # Ganti populasi lama dengan populasi baru (batas 10)
         pop = pop_baru[:population_size]
         
-        terbaik = min(pop, key=fitness)
-        x1, x2 = decode(terbaik)
-        print(f"Generasi {g+1}: Fitness terbaik = {fitness(terbaik):.6f}, x1 = {x1:.4f}, x2 = {x2:.4f}")
-    
-    return min(pop, key=fitness)
+        # Evaluasi kromosom terbaik di generasi ini
+        kromosom_terbaik = min(pop, key=fitness)
+        x1, x2 = decode(kromosom_terbaik)
+        nilai_fitness = fitness(kromosom_terbaik)
 
-def main(jumlah_generasi):
-    populasi = inisialisasi_populasi()
-
-    # Header tabel
-    print(f"{'Generasi':>8} || {'Fitness':>9} || {'Kromosom':10} || {'x1':7} || {'x2':7}")    
-    for generasi in range(jumlah_generasi):
-        populasi_baru = []
-
-        while len(populasi_baru) < population_size:
-            # Seleksi orang tua
-            ortu1 = pemilihan_ortu(populasi)
-            ortu2 = pemilihan_ortu(populasi)
-
-            # Crossover
-            anak1, anak2 = crossover(ortu1[:], ortu2[:])  # copy agar tidak berubah
-
-            # Mutasi
-            anak1 = mutasi(anak1)
-            anak2 = mutasi(anak2)
-
-            populasi_baru.extend([anak1, anak2])
-
-        # Update populasi
-        populasi = populasi_baru[:population_size]
-
-        # Cari kromosom terbaik di generasi ini
-        kromosom_terbaik = min(populasi, key=fitness)
-        kromosom_string = ''.join(str(bit) for bit in kromosom_terbaik)
-        terbaik = min(populasi, key=fitness)
-        x1, x2 = decode(terbaik)
-        nilai_fitness = fitness(terbaik)
-
-        # Tampilkan hasil generasi
-        print(f"{generasi+1:>8} || {nilai_fitness:.6f} || {kromosom_string} || {x1:7.4f} || {x2:7.4f}")
+        kromosom_str = ''.join(map(str, kromosom_terbaik))
+        #print(f"{g+1:>8} || {nilai_fitness:>12.6f} || {kromosom_str:>12} || {x1:>10.4f} || {x2:>10.4f}")
 
 
-main(10)
+evolusi(10)
